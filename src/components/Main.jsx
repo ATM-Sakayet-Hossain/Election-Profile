@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
+import { saveAs } from "file-saver";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -242,7 +243,7 @@ const Main = () => {
     });
   };
 
-  const exportPoster = (format) => {
+  const exportPoster = async (format) => {
     if (!templateImageRef.current) {
       alert("টেমপ্লেট এখনো লোড হয়নি!");
       return;
@@ -298,33 +299,73 @@ const Main = () => {
 
     const mimeType = format === "jpg" ? "image/jpeg" : "image/png";
 
-    const download = (url) => {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `poster-${Date.now()}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    const filename = `poster-${Date.now()}.${format}`;
+
+    const isIOS = (() => {
+      const ua = navigator.userAgent || "";
+      const isAppleMobile = /iPad|iPhone|iPod/i.test(ua);
+      const isIpadOS =
+        navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      return isAppleMobile || isIpadOS;
+    })();
+
+    const dataUrlToBlob = (dataUrl) => {
+      const commaIndex = dataUrl.indexOf(",");
+      if (commaIndex === -1) return new Blob([], { type: mimeType });
+
+      const header = dataUrl.slice(0, commaIndex);
+      const base64 = dataUrl.slice(commaIndex + 1);
+      const match = header.match(/data:(.*?);base64/i);
+      const type = match?.[1] || mimeType;
+
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { type });
     };
-    if (typeof canvas.toBlob === "function") {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            const dataUrl = canvas.toDataURL(mimeType, 0.95);
-            download(dataUrl);
-            return;
-          }
-          const url = URL.createObjectURL(blob);
-          download(url);
-          URL.revokeObjectURL(url);
-        },
-        mimeType,
-        0.95,
-      );
-    } else {
-      const dataUrl = canvas.toDataURL(mimeType, 0.95);
-      download(dataUrl);
+
+    // Synchronous export keeps the "user gesture" context for mobile browsers.
+    const dataUrl = canvas.toDataURL(mimeType, 0.95);
+    const blob = dataUrlToBlob(dataUrl);
+
+    // 1) Best mobile experience: Share sheet (Save Image, Files, etc.)
+    try {
+      if (navigator.share && typeof File === "function") {
+        const file = new File([blob], filename, { type: mimeType });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Poster" });
+          return;
+        }
+      }
+    } catch {
+      // Ignore; fall through to download fallback.
     }
+
+    // 2) Standard download (works well on Android/desktop)
+    try {
+      saveAs(blob, filename);
+      return;
+    } catch {
+      // Ignore; fall through.
+    }
+
+    // 3) iOS fallback: open image so user can long-press "Save Image"
+    if (isIOS) {
+      const opened = window.open(dataUrl, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.href = dataUrl;
+      return;
+    }
+
+    // 4) Last resort: download attribute
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const posterAspectRatio = `${templateSize.width}/${templateSize.height}`;
