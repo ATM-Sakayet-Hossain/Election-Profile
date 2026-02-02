@@ -37,6 +37,8 @@ const Main = () => {
 
   const [templateSrc, setTemplateSrc] = useState(TEMPLATE_OPTIONS[0].src);
 
+  const [lastExport, setLastExport] = useState(null);
+
   const [templateSize, setTemplateSize] = useState({
     width: 1080,
     height: 1080,
@@ -329,6 +331,9 @@ const Main = () => {
     // Synchronous export keeps the "user gesture" context for mobile browsers.
     const dataUrl = canvas.toDataURL(mimeType, 0.95);
     const blob = dataUrlToBlob(dataUrl);
+
+    // Keep a clickable fallback link for cases where download/share is blocked.
+    setLastExport({ url: dataUrl, filename, mimeType });
 
     // 1) Best mobile experience: Share sheet (Save Image, Files, etc.)
     try {
@@ -637,6 +642,22 @@ const Main = () => {
                   <span>JPG ডাউনলোড করুন</span>
                 </button>
               </div>
+
+              {lastExport?.url && (
+                <div className="mt-3 text-sm text-gray-700">
+                  <a
+                    href={lastExport.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-indigo-700"
+                  >
+                    লিংকে ক্লিক করলে ব্রাউজারে ওপেন হবে
+                  </a>
+                  <div className="mt-1 text-xs text-gray-500">
+                    (মোবাইলে ডাউনলোড না হলে—এটা ওপেন করে Save Image করুন)
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
