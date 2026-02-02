@@ -92,13 +92,6 @@ const Header = () => {
             >
               {copied ? "Copied!" : "Copy Link"}
             </button>
-            <button
-              type="button"
-              onClick={shareLink}
-              className="px-3 py-2 rounded-xl bg-white text-amber-900 text-sm font-semibold border border-amber-300 hover:bg-amber-50"
-            >
-              Share Link
-            </button>
           </div>
           <div className="mt-3 text-xs text-amber-700">
             Tip: In-app browser menu (⋮/… ) থেকে “Open in browser” দিলেও হবে।
