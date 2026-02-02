@@ -4,14 +4,9 @@ const APP_URL = "https://election-profile.vercel.app/";
 
 function detectInAppBrowser(userAgent) {
   const ua = userAgent || "";
-
-  // Common in-app browser markers (FB/IG/Messenger etc.)
   const socialIAB =
     /(FBAN|FBAV|FB_IAB|Messenger|Instagram|Line|Twitter|Snapchat|Pinterest|LinkedInApp)/i;
-
-  // Android WebView marker often used by in-app browsers
   const androidWV = /\bwv\b/i.test(ua) && /Android/i.test(ua);
-
   return socialIAB.test(ua) || androidWV;
 }
 
@@ -33,23 +28,9 @@ const Header = () => {
     }
   };
 
-  const shareLink = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ url: APP_URL, title: "Election Profile" });
-        return;
-      }
-    } catch {
-      // ignore
-    }
-    await copyLink();
-  };
-
   const openInBrowser = () => {
     const ua = navigator.userAgent || "";
     const isAndroid = /Android/i.test(ua);
-
-    // Best-effort: Android can sometimes jump to Chrome via intent:// from in-app browsers.
     if (isAndroid) {
       try {
         const u = new URL(APP_URL);
@@ -60,9 +41,6 @@ const Header = () => {
         // ignore
       }
     }
-
-    // iOS and many in-app browsers won't allow forcing external apps.
-    // Opening a new tab is still useful in some cases.
     window.open(APP_URL, "_blank", "noopener,noreferrer");
   };
 
